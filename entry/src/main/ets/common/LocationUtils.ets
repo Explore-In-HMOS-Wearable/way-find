@@ -1,0 +1,17 @@
+export function calculateBearing(lat1: number, lon1: number, lat2:number, lon2: number): number{
+  const toRad = (deg : number) => deg * Math.PI / 180;
+  const toDeg = (rad : number) => rad * 180 / Math.PI;
+  let dLon = toRad(lon2 - lon1);
+  let y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  let x = Math.cos(toRad(lat1))*Math.sin(toRad(lat2))-Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(dLon);
+  let brng = Math.atan2(y,x);
+  return(toDeg(brng) + 360) % 360;
+}
+export function calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (deg : number) => deg * Math.PI / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)** 2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2* R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
