@@ -1,7 +1,8 @@
 import { geoLocationManager } from '@kit.LocationKit';
 import { calculateBearing, calcDistance } from '../common/LocationUtils';
-import { loadWaypoints , Waypoint} from '../common/WaypointStore';
+import { loadWaypoints, Waypoint } from '../common/WaypointStore';
 import { router } from '@kit.ArkUI';
+import { Context } from '@kit.AbilityKit';
 
 
 interface WaypointWithDistance extends Waypoint {
@@ -14,9 +15,14 @@ interface waypointScreenPos {
   y: number;
 }
 
-@Entry
+@Builder
+export function IndexPageBuilder() {
+  Index()
+}
+
 @Component
 struct Index {
+  pathStack: NavPathStack = new NavPathStack()
   @State latitude: number = 0;
   @State longitude: number = 0;
   @State altitude: number = 0;
@@ -33,14 +39,17 @@ struct Index {
   private lastTime: number | null = null;
   private settings: RenderingContextSettings = new RenderingContextSettings(true)
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings)
-  private updateSpeed(newSpeed: number){
+  private context: Context = AppStorage.get('context') as Context
+
+  private updateSpeed(newSpeed: number) {
     this.speedHistory.push(newSpeed)
-    if(this.speedHistory.length > this.maxHistory){
+    if (this.speedHistory.length > this.maxHistory) {
       this.speedHistory.shift()
     }
-    let sum = this.speedHistory.reduce((a,b) => a + b, 0)
+    let sum = this.speedHistory.reduce((a, b) => a + b, 0)
     this.speed = sum / this.speedHistory.length
   }
+
   private drawRadar = (ctx:
     CanvasRenderingContext2D) => {
     this.waypointScreenPos = [];
@@ -162,13 +171,7 @@ struct Index {
 
   aboutToAppear() {
     this.startTracking()
-    loadWaypoints(getContext(this)).then(list => {
-      this.waypoints = list
-      this.drawRadar(this.ctx);
-    })
-  }
-  onPageShow() {
-    loadWaypoints(getContext(this)).then(list => {
+    loadWaypoints(this.context).then(list => {
       this.waypoints = list
       this.drawRadar(this.ctx);
     })
@@ -178,12 +181,11 @@ struct Index {
     let request: geoLocationManager.ContinuousLocationRequest =
       { 'interval': 1, 'locationScenario': geoLocationManager.UserActivityScenario.NAVIGATION };
     let locationCallback = (location: geoLocationManager.Location): void => {
-      console.info('locationCallback: data: ' + JSON.stringify(location));
       let now = Date.now();
-      if(this.lastLat !== null && this.lastLon !== null && this.lastTime !== null){
+      if (this.lastLat !== null && this.lastLon !== null && this.lastTime !== null) {
         let distance = calcDistance(this.lastLat, this.lastLon, location.latitude, location.longitude)
         let dt = (now - this.lastTime) / 1000;
-        if(dt > 0){
+        if (dt > 0) {
           let rawSpeed = (distance / dt) * 3.6;
           this.updateSpeed(rawSpeed);
         }
@@ -201,7 +203,7 @@ struct Index {
     try {
       geoLocationManager.on('locationChange', request, locationCallback);
     } catch (err) {
-      console.error('errCode:' + err.code + ', message:' + err.message);
+      console.error(err.code);
     }
   }
 
@@ -216,36 +218,59 @@ struct Index {
   }
 
   build() {
-Stack(){
+    NavDestination() {
+      Stack() {
+        Canvas(this.ctx)
+          .onReady(() => {
+            this.drawRadar(this.ctx)
+          })
 
-      Canvas(this.ctx)
-        .onReady(() => {
-          this.drawRadar(this.ctx)
-        })
+        Column() {
+          Image($rawfile('svgviewer-output.svg'))
+            .width(40)
+            .height(40)
+            .fillColor(Color.Red)
+            .opacity(0.4)
+            .onClick(() => {
+              this.pathStack.pushPathByName('waypointPage', null)
+            })
 
-  Column(){
-  Image($rawfile('svgviewer-output.svg')).width(40).height(40).fillColor(Color.Red).opacity(0.4).onClick(() =>{
-    router.push({url: 'pages/WaypointPage'})
-  })
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.End)
+        .alignItems(HorizontalAlign.Start)
+        .padding(30)
+      }.onTouch((e) => {
+        const touchX = e.touches[0].x;
+        const touchY = e.touches[0].y;
+        for (let i = 0; i < this.waypointScreenPos.length; i++) {
+          console.info(this.waypointScreenPos.length.toString())
+          const wpPos = this.waypointScreenPos[i];
+          const dx = touchX - wpPos.x;
+          const dy = touchY - wpPos.y;
+          if (dx * dx + dy * dy <= 6 * 6) {
+            this.selectedIndex = i;
+            console.info(this.selectedIndex.toString())
+            this.drawRadar(this.ctx);
+            break;
+          }
+        }
 
-  }.width('100%').height('100%').justifyContent(FlexAlign.End).alignItems(HorizontalAlign.Start).padding(30)
-}.onTouch((e) => {
-  const touchX = e.touches[0].x;
-  const touchY = e.touches[0].y;
-  for (let i = 0; i < this.waypointScreenPos.length; i++) {
-    console.log(this.waypointScreenPos.length.toString())
-    const wpPos = this.waypointScreenPos[i];
-    const dx = touchX - wpPos.x;
-    const dy = touchY - wpPos.y;
-    if (dx * dx + dy * dy <= 6 * 6) {
-      this.selectedIndex = i;
-      console.log(this.selectedIndex.toString())
-      this.drawRadar(this.ctx);
-      break;
+
+      })
     }
-  }
-
-
-})
+    .onShown(() => {
+      loadWaypoints(this.context).then(list => {
+        this.waypoints = list
+        this.drawRadar(this.ctx);
+      })
+    })
+    .hideTitleBar(true)
+    .hideBackButton(true)
+    .hideToolBar(true)
+    .onReady((context: NavDestinationContext) => {
+      this.pathStack = context.pathStack
+    })
   }
 }

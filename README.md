@@ -18,8 +18,7 @@ This is a wearable application developed with ArkTS that allows users to manage 
 - **Persistent Storage:** Waypoints are saved locally and remain available after restarting the app.
 - **Wearable Optimized:** ArcList UI for small screens with smooth navigation.
 
-# Technology
-## Stack
+# Tech Stack
 - **Languages**: ArkTS, ArkUI
 - **Frameworks**: HarmonyOS 6.0.0 Beta3
 - **Tools**: DevEco Studio 6.0.0.828

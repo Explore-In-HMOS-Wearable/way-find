@@ -2,15 +2,21 @@ import {
   abilityAccessCtrl,
   AbilityConstant,
   common,
-  ConfigurationConstant, Permissions, UIAbility, Want } from '@kit.AbilityKit';
+  ConfigurationConstant,
+  Permissions,
+  UIAbility,
+  Want
+} from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { wantAgent, WantAgent } from '@kit.AbilityKit';
 import { notificationManager } from '@kit.NotificationKit';
+import MyContext from './MyContext';
 
 const DOMAIN = 0x0000;
-const permissions: Array<Permissions> = ['ohos.permission.LOCATION','ohos.permission.APPROXIMATELY_LOCATION'];
+const permissions: Array<Permissions> = ['ohos.permission.LOCATION', 'ohos.permission.APPROXIMATELY_LOCATION'];
+
 // Use UIExtensionAbility: Replace common.UIAbilityContext with common.UIExtensionContext.
 function reqPermissionsFromUser(permissions: Array<Permissions>, context: common.UIAbilityContext): void {
   let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
@@ -30,6 +36,7 @@ function reqPermissionsFromUser(permissions: Array<Permissions>, context: common
     console.error(`Failed to request permissions from user. Code is ${err.code}, message is ${err.message}`);
   })
 }
+
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
@@ -48,10 +55,15 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent('pages/MainPage', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
+      }
+      let context: Context | undefined = windowStage.getMainWindowSync().getUIContext().getHostContext();
+      if (context) {
+        AppStorage.setOrCreate('context', context);
+        MyContext.getInstance().saveContext(context)
       }
       reqPermissionsFromUser(permissions, this.context);
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');

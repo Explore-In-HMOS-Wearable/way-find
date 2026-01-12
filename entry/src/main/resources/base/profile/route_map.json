@@ -1,0 +1,20 @@
+{
+  "routerMap": [
+    {
+      "name": "waypointPage",
+      "pageSourceFile": "src/main/ets/pages/WaypointPage.ets",
+      "buildFunction": "WaypointPageBuilder",
+      "data": {
+        "description": "this is waypoint page"
+      }
+    },
+    {
+      "name": "indexPage",
+      "pageSourceFile": "src/main/ets/pages/Index.ets",
+      "buildFunction": "IndexPageBuilder",
+      "data": {
+        "description": "this is index page"
+      }
+    }
+  ]
+}
